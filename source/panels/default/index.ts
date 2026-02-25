@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'fs-extra';
 import { join } from 'path';
-import { createApp, App, defineComponent, ref, computed, onMounted, watch, nextTick } from 'vue';
+import { createApp, App, defineComponent, ref, computed, onMounted, watch } from 'vue';
 
 const panelDataMap = new WeakMap<any, App>();
 
@@ -12,16 +12,6 @@ interface ToolConfig {
     name: string;
     enabled: boolean;
     description: string;
-}
-
-// 定义配置接口
-interface Configuration {
-    id: string;
-    name: string;
-    description: string;
-    tools: ToolConfig[];
-    createdAt: string;
-    updatedAt: string;
 }
 
 // 定义服务器设置接口

@@ -121,6 +121,37 @@ export interface MCPClient {
     userAgent?: string;
 }
 
+export interface MCPSession {
+    id: string;
+    createdAt: Date;
+    lastActivity: Date;
+    initialized: boolean;
+    protocolVersion?: string;
+    userAgent?: string;
+}
+
+export type MCPRequestId = string | number | null;
+
+export interface MCPJSONRPCError {
+    code: number;
+    message: string;
+    data?: any;
+}
+
+export interface MCPJSONRPCMessage {
+    jsonrpc?: '2.0';
+    id?: MCPRequestId;
+    method?: string;
+    params?: any;
+}
+
+export interface MCPJSONRPCResponse {
+    jsonrpc: '2.0';
+    id: MCPRequestId;
+    result?: any;
+    error?: MCPJSONRPCError;
+}
+
 export interface ToolExecutor {
     getTools(): ToolDefinition[];
     execute(toolName: string, args: any): Promise<ToolResponse>;

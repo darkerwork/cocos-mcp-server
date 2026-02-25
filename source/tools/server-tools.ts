@@ -36,6 +36,56 @@ export class ServerTools implements ToolExecutor {
                 }
             },
             {
+                name: 'search_tools',
+                description: 'Search tools by keyword and optional category. Use this when you are unsure which tool to call.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        keyword: {
+                            type: 'string',
+                            description: 'Keyword to search in tool name and description'
+                        },
+                        category: {
+                            type: 'string',
+                            description: 'Optional category filter, such as scene/node/prefab'
+                        },
+                        limit: {
+                            type: 'number',
+                            description: 'Maximum number of results to return',
+                            default: 10
+                        },
+                        includeDisabled: {
+                            type: 'boolean',
+                            description: 'Whether to include currently disabled tools in results',
+                            default: true
+                        }
+                    },
+                    required: ['keyword']
+                }
+            },
+            {
+                name: 'list_tool_categories',
+                description: 'List all available tool categories and their counts',
+                inputSchema: {
+                    type: 'object',
+                    properties: {}
+                }
+            },
+            {
+                name: 'get_tool_detail',
+                description: 'Get full detail of a tool including schema and sample parameters',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        name: {
+                            type: 'string',
+                            description: 'Full tool name, e.g. node_create_node'
+                        }
+                    },
+                    required: ['name']
+                }
+            },
+            {
                 name: 'check_server_connectivity',
                 description: 'Check server connectivity and network status',
                 inputSchema: {
@@ -70,6 +120,13 @@ export class ServerTools implements ToolExecutor {
                 return await this.queryServerPort();
             case 'get_server_status':
                 return await this.getServerStatus();
+            case 'search_tools':
+            case 'list_tool_categories':
+            case 'get_tool_detail':
+                return {
+                    success: false,
+                    error: `Tool '${toolName}' is executed by MCP server runtime and is unavailable in direct ServerTools context`
+                };
             case 'check_server_connectivity':
                 return await this.checkServerConnectivity(args.timeout);
             case 'get_network_interfaces':

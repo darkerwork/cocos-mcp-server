@@ -6,15 +6,52 @@ import * as path from 'path';
 export class ToolManager {
     private settings: ToolManagerSettings;
     private availableTools: ToolConfig[] = [];
+    private readonly defaultEnabledToolNames: Set<string> = new Set([
+        // Discovery tools
+        'server_search_tools',
+        'server_list_tool_categories',
+        'server_get_tool_detail',
+        // Core scene/node
+        'scene_get_current_scene',
+        'scene_get_scene_hierarchy',
+        'scene_get_scene_list',
+        'scene_open_scene',
+        'scene_save_scene',
+        'node_get_node_info',
+        'node_find_nodes',
+        'node_find_node_by_name',
+        'node_create_node',
+        'node_set_node_transform',
+        'node_set_node_property',
+        'node_delete_node',
+        // Core component/prefab
+        'component_get_components',
+        'component_get_component_info',
+        'component_add_component',
+        'component_set_component_property',
+        'prefab_get_prefab_list',
+        'prefab_get_prefab_info',
+        'prefab_instantiate_prefab',
+        'prefab_create_prefab',
+        'prefab_update_prefab',
+        // Core project/debug/server
+        'project_get_project_info',
+        'project_get_assets',
+        'debug_get_console_logs',
+        'debug_validate_scene',
+        'debug_get_editor_info',
+        'server_get_server_status'
+    ]);
 
     constructor() {
         this.settings = this.readToolManagerSettings();
         this.initializeAvailableTools();
+        this.syncConfigurationsWithAvailableTools();
         
         // 如果没有配置，自动创建一个默认配置
         if (this.settings.configurations.length === 0) {
             console.log('[ToolManager] No configurations found, creating default configuration...');
-            this.createConfiguration('默认配置', '自动创建的默认工具配置');
+            this.createConfiguration('默认配置(core)', '自动创建的默认工具配置（discovery + mini-core）');
         }
     }
 
@@ -47,6 +84,14 @@ export class ToolManager {
             console.error('Failed to read tool manager settings:', e);
         }
         return DEFAULT_TOOL_MANAGER_SETTINGS;
+    }
+
+    private buildToolKey(category: string, name: string): string {
+        return `${category}_${name}`;
+    }
+
+    private isDefaultEnabledTool(category: string, name: string): boolean {
+        return this.defaultEnabledToolNames.has(this.buildToolKey(category, name));
     }
 
     private saveToolManagerSettings(settings: ToolManagerSettings): void {
@@ -123,7 +168,7 @@ export class ToolManager {
                     this.availableTools.push({
                         category: category,
                         name: tool.name,
-                        enabled: true, // 默认启用
+                        enabled: this.isDefaultEnabledTool(category, tool.name),
                         description: tool.description
                     });
                 });
@@ -233,6 +278,61 @@ export class ToolManager {
         });
 
         console.log(`[ToolManager] Initialized ${this.availableTools.length} default tools`);
+    }
+
+    private syncConfigurationsWithAvailableTools(): void {
+        if (this.settings.configurations.length === 0 || this.availableTools.length === 0) {
+            return;
+        }
+
+        const availableMap = new Map<string, ToolConfig>();
+        this.availableTools.forEach(tool => {
+            availableMap.set(this.buildToolKey(tool.category, tool.name), tool);
+        });
+
+        let changed = false;
+        this.settings.configurations.forEach(config => {
+            const existingKeys = new Set(config.tools.map(tool => this.buildToolKey(tool.category, tool.name)));
+            let configChanged = false;
+            const isLegacyAutoDefault = config.name === '默认配置'
+                && !!config.description
+                && config.description.includes('自动创建');
+
+            availableMap.forEach((tool, key) => {
+                if (!existingKeys.has(key)) {
+                    config.tools.push({
+                        category: tool.category,
+                        name: tool.name,
+                        enabled: this.isDefaultEnabledTool(tool.category, tool.name),
+                        description: tool.description
+                    });
+                    configChanged = true;
+                }
+            });
+
+            const shouldMigrateToCoreDefault = isLegacyAutoDefault
+                && config.tools.length === availableMap.size
+                && config.tools.every(tool => tool.enabled === true);
+
+            if (shouldMigrateToCoreDefault) {
+                config.tools.forEach(tool => {
+                    tool.enabled = this.isDefaultEnabledTool(tool.category, tool.name);
+                });
+                config.name = '默认配置(core)';
+                config.description = '自动升级到默认工具暴露策略（discovery + mini-core）';
+                configChanged = true;
+            }
+
+            if (configChanged) {
+                config.updatedAt = new Date().toISOString();
+                changed = true;
+            }
+        });
+
+        if (changed) {
+            this.saveSettings();
+            console.log('[ToolManager] Synced configurations with latest tool catalog');
+        }
     }
 
     public getAvailableTools(): ToolConfig[] {

@@ -52,11 +52,6 @@
                     "openPanel"
                 ]
             },
-            "open-tool-manager": {
-                "methods": [
-                    "openToolManager"
-                ]
-            },
             "start-server": {
                 "methods": [
                     "startServer"
